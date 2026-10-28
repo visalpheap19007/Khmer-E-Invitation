@@ -330,6 +330,154 @@ const SPARKS = [
   [12, 82, 13, 1.4], [88, 80, 10, 0.6], [50, 8, 9, 2.4], [38, 44, 8, 1.2],
   [64, 40, 10, 2.8], [30, 90, 9, 0.9], [70, 92, 12, 2],
 ];
+//swipe gallery
+function Gallery({ items, onOpen, num, hint }) {
+  const n = items.length;
+  const [cur, setCur] = useState(0);
+  const [drag, setDrag] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [seen, setSeen] = useState(false);
+  const wrap = useRef(null);
+  const startX = useRef(null);
+  const moved = useRef(false);
+  const captured = useRef(false);
+  const resume = useRef(0);
+
+  const go = (d) => setCur((v) => (v + d + n) % n);
+
+  // reveal when scrolled into view (own observer, not the global .reveal one)
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setSeen(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // autoplay (after it has been seen); pauses while the guest touches it
+  useEffect(() => {
+    if (!seen || paused) return;
+    const id = setInterval(() => go(1), 4500);
+    return () => clearInterval(id);
+  }, [seen, paused, n]);
+
+  const pause = () => {
+    setPaused(true);
+    clearTimeout(resume.current);
+    resume.current = setTimeout(() => setPaused(false), 7000);
+  };
+
+  const down = (e) => {
+    startX.current = e.clientX;
+    moved.current = false;
+    captured.current = false;
+    pause();
+  };
+  const move = (e) => {
+    if (startX.current == null) return;
+    const dx = e.clientX - startX.current;
+    if (Math.abs(dx) > 6) {
+      moved.current = true;
+      setDragging(true);
+      if (!captured.current) {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        captured.current = true;
+      }
+    }
+    setDrag(dx);
+  };
+  const up = () => {
+    if (startX.current == null) return;
+    if (drag < -50) go(1);
+    else if (drag > 50) go(-1);
+    startX.current = null;
+    setDrag(0);
+    setDragging(false);
+  };
+  const key = (e) => {
+    if (e.key === "ArrowLeft") (go(-1), pause());
+    if (e.key === "ArrowRight") (go(1), pause());
+  };
+
+  const half = Math.floor(n / 2);
+  return (
+    <div ref={wrap} className={`g-wrap ${seen ? "seen" : ""}`}>
+      <div className="g-ambient" key={cur} style={{ backgroundImage: `url(${items[cur]})` }} aria-hidden="true" />
+
+      <div
+        className={`g-stage ${dragging ? "dragging" : ""}`}
+        tabIndex={0}
+        onKeyDown={key}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        aria-roledescription="carousel"
+      >
+        {items.map((src, idx) => {
+          const o = seen ? ((idx - cur + n + half) % n) - half : 0; // circular offset from the centre
+          const a = Math.abs(o);
+          const on = o === 0 && seen;
+          const style = {
+            transform: `translateX(calc(-50% + ${o * 58}% + ${drag * 0.7}px)) rotateY(${o * -16}deg) scale(${o === 0 ? 1 : 0.82 - (a - 1) * 0.08})`,
+            opacity: !seen ? (idx === cur ? 1 : 0) : a > 2 ? 0 : 1 - a * 0.25,
+            zIndex: 10 - a,
+            filter: o === 0 ? "none" : "brightness(.55) saturate(.8)",
+            pointerEvents: a > 2 ? "none" : "auto",
+          };
+          return (
+            <button
+              key={idx}
+              className={`g-slide ${on ? "on" : ""}`}
+              style={style}
+              aria-label={`${idx + 1} / ${n}`}
+              onClick={() => {
+                if (moved.current) return;
+                on ? onOpen(idx) : (setCur(idx), pause());
+              }}
+            >
+              <img src={src} alt="" draggable="false" />
+              {on && <i className="g-shine" />}
+              {["tl", "tr", "bl", "br"].map((c) => (
+                <img key={c} src={`${KIT}/corner.svg`} alt="" className={`g-c g-c-${c}`} aria-hidden="true" draggable="false" />
+              ))}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="g-ctrl">
+        <button className="g-btn" onClick={() => (go(-1), pause())} aria-label="Previous">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>
+        </button>
+        <div className="g-dots">
+          {items.map((_, idx) => (
+            <button key={idx} className={`g-dot ${idx === cur ? "on" : ""}`} onClick={() => (setCur(idx), pause())} aria-label={`${idx + 1}`} />
+          ))}
+        </div>
+        <button className="g-btn" onClick={() => (go(1), pause())} aria-label="Next">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5l7 7-7 7" /></svg>
+        </button>
+      </div>
+
+      <p className="g-count">
+        {num(cur + 1)} / {num(n)}
+      </p>
+      <p className="g-hint">
+        <span className="g-arrows" aria-hidden="true">‹ ›</span> {hint}
+      </p>
+    </div>
+  );
+}
 
   // typing in the name box keeps the URL in sync:  /ដារ៉ា
   const setGuest = (v) => {
@@ -453,12 +601,13 @@ const SPARKS = [
 
             <div className="hh-names h-in" style={{ "--i": 5 }}>
               <div>
-                <span>{t.hero.groomLabel}</span>
-                <b className="gold-bright">{t.groomName}</b>
-              </div>
-              <div>
                 <span>{t.hero.brideLabel}</span>
                 <b className="gold-bright">{t.brideName}</b>
+              </div>
+              <div>
+                <span>{t.hero.groomLabel}</span>
+                
+                <b className="gold-bright">{t.groomName}</b>
               </div>
             </div>
 
@@ -467,7 +616,7 @@ const SPARKS = [
               <br />
               {t.dateLine}
               <br />
-              {t.venueName} · {t.venueAddress}
+              {t.venueAddress}
             </p>
 
             <a href="#invite" className="scroll-cue h-in" style={{ "--i": 7 }} aria-label="Scroll">
@@ -542,13 +691,12 @@ const SPARKS = [
         <section id="gallery" className="band olive-band gallery" style={{ backgroundImage: `url(${TEX}/paper-olive.webp)` }}>
           <h2 className="h2 gold reveal">{t.galleryTitle}</h2>
           <img src={`${KIT}/divider.svg`} alt="" className="divider reveal" aria-hidden="true" />
-          <div className="grid">
-            {images.gallery.map((src, i) => (
-              <button key={i} className="tile reveal" onClick={() => setLb(i)}>
-                <img src={src} alt="" loading="lazy" />
-              </button>
-            ))}
-          </div>
+          <Gallery
+            items={images.gallery}
+            onOpen={setLb}
+            num={(v) => (lang === "km" ? toKhmer(String(v).padStart(2, "0")) : String(v).padStart(2, "0"))}
+            hint={lang === "km" ? "អូសទៅឆ្វេង ឬស្តាំ" : "Swipe left or right"}
+          />
         </section>
 
         {/* CONTACT */}
