@@ -707,7 +707,7 @@ function Gallery({ items, onOpen, num, hint }) {
               Telegram
             </a>
             <a href={contacts.messenger} target="_blank" rel="noreferrer">
-              Messenger
+              Tel
             </a>
             <a href={contacts.facebook} target="_blank" rel="noreferrer">
               Facebook
