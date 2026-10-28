@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1500" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f4a3a"/><stop offset="1" stop-color="#16241c"/></linearGradient></defs>
+<rect width="1200" height="1500" fill="url(#g)"/>
+<circle cx="600.0" cy="675.0" r="216.0" fill="none" stroke="#c9a959" stroke-opacity=".5" stroke-width="3"/>
+<text x="600.0" y="685.0" text-anchor="middle" font-family="Georgia,serif" font-size="60.0" fill="#f3ecd9" fill-opacity=".8">Venue photo</text>
+<text x="600.0" y="783.0" text-anchor="middle" font-family="Georgia,serif" font-size="31.2" fill="#c9a959" fill-opacity=".8">replace in /public/img</text>
+</svg>
